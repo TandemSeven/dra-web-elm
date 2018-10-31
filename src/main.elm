@@ -5,7 +5,7 @@ import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode exposing (Decoder, dict, field, int, list, map2, string)
+import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
 import Svg exposing (path, svg)
 import Svg.Attributes exposing (d, viewBox)
@@ -122,18 +122,18 @@ type alias Place =
 
 placeDecoder : Decoder Place
 placeDecoder =
-    Json.Decode.succeed Place
-        |> required "latitude" string
-        |> required "longitude" string
-        |> required "place name" string
+    Decode.succeed Place
+        |> required "latitude" Decode.string
+        |> required "longitude" Decode.string
+        |> required "place name" Decode.string
 
 
 locationDecoder : Decoder Location
 locationDecoder =
-    Json.Decode.succeed Location
-        |> required "post code" string
-        |> required "country" string
-        |> required "places" (list placeDecoder)
+    Decode.succeed Location
+        |> required "post code" Decode.string
+        |> required "country" Decode.string
+        |> required "places" (Decode.list placeDecoder)
 
 
 doFetch : String -> Cmd Msg
