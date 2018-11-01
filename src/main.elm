@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -37,7 +37,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "00000" "" "" "" "") (Weather "" ""), Cmd.none )
+    ( Model "" (Locality "00000" "" "" "" "") (Weather "" ""), fetchLocationFromIP )
 
 
 
@@ -45,28 +45,55 @@ init _ =
 
 
 type Msg
-    = Fetch String
-    | Data (Result Http.Error Location)
+    = FetchLocationFromZip String
+    | FetchLocationFromIP
+    | ReceivedLocationFromZip (Result Http.Error LocationFromZip)
+    | ReceivedLocationFromIP (Result Http.Error LocationFromIP)
 
 
-setZip : String -> Locality -> Locality
-setZip newZip locality =
-    { locality | zip = newZip }
+setLocalityFromZip : LocationFromZip -> Locality -> Locality
+setLocalityFromZip location locality =
+    let
+        place =
+            case List.head location.places of
+                Just firstPlace ->
+                    firstPlace
+
+                Nothing ->
+                    Place "" "" ""
+    in
+    { locality | zip = location.zip, city = place.city, lat = place.latitude, lng = place.longitude }
+
+
+setLocalityFromIP : LocationFromIP -> Locality -> Locality
+setLocalityFromIP location locality =
+    { locality | zip = location.zip, city = location.city, lat = String.fromFloat location.latitude, lng = String.fromFloat location.longitude }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Fetch url ->
-            ( model, doFetch url )
+        FetchLocationFromZip url ->
+            ( model, fetchLocationFromZip url )
 
-        Data result ->
+        FetchLocationFromIP ->
+            ( model, fetchLocationFromIP )
+
+        ReceivedLocationFromZip result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setZip newLocation.zip model.locality }, Cmd.none )
+                    ( { model | locality = setLocalityFromZip newLocation model.locality }, Cmd.none )
 
                 Err _ ->
-                    ( { model | locality = setZip "XXXXX" model.locality }, Cmd.none )
+                    ( model, Cmd.none )
+
+        ReceivedLocationFromIP result ->
+            case result of
+                Ok newLocation ->
+                    ( { model | locality = setLocalityFromIP newLocation model.locality }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -75,8 +102,8 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ style "margin" "0" ]
-        [ text ("ZIP:" ++ model.locality.zip), button [ onClick (Fetch "01545") ] [ text "Fetch" ] ]
+    div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
+        [ text ("ZIP:" ++ model.locality.zip), button [ onClick (FetchLocationFromZip "60606"), style "max-width" "50px" ] [ text "Fetch" ], span [] [ text ("City: " ++ model.locality.city) ], text (" | LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
 
 
 svgWave : Html msg
@@ -100,6 +127,10 @@ locationZipEndpoint =
     "http://api.zippopotam.us/us"
 
 
+locationIPEndpoint =
+    "http://ip-api.com/json"
+
+
 cityImageEndpoint =
     "https://api.teleport.org/api/locations"
 
@@ -112,8 +143,12 @@ weatherIconEndpoint =
     "https://www.flaticon.com/packs/weather-forecast"
 
 
-type alias Location =
+type alias LocationFromZip =
     { zip : String, country : String, places : List Place }
+
+
+type alias LocationFromIP =
+    { zip : String, country : String, latitude : Float, longitude : Float, city : String }
 
 
 type alias Place =
@@ -128,18 +163,34 @@ placeDecoder =
         |> required "place name" Decode.string
 
 
-locationDecoder : Decoder Location
-locationDecoder =
-    Decode.succeed Location
+locationZipDecoder : Decoder LocationFromZip
+locationZipDecoder =
+    Decode.succeed LocationFromZip
         |> required "post code" Decode.string
         |> required "country" Decode.string
         |> required "places" (Decode.list placeDecoder)
 
 
-doFetch : String -> Cmd Msg
-doFetch zip =
-    Http.send Data <|
-        Http.get (locationZipEndpoint ++ "/" ++ zip) locationDecoder
+locationIPDecoder : Decoder LocationFromIP
+locationIPDecoder =
+    Decode.succeed LocationFromIP
+        |> required "zip" Decode.string
+        |> required "country" Decode.string
+        |> required "lat" Decode.float
+        |> required "lon" Decode.float
+        |> required "city" Decode.string
+
+
+fetchLocationFromZip : String -> Cmd Msg
+fetchLocationFromZip zip =
+    Http.send ReceivedLocationFromZip <|
+        Http.get (locationZipEndpoint ++ "/" ++ zip) locationZipDecoder
+
+
+fetchLocationFromIP : Cmd Msg
+fetchLocationFromIP =
+    Http.send ReceivedLocationFromIP <|
+        Http.get locationIPEndpoint locationIPDecoder
 
 
 
