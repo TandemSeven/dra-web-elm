@@ -47,8 +47,10 @@ init _ =
 type Msg
     = FetchLocationFromZip String
     | FetchLocationFromIP
+    | FetchLocationImage ( String, String )
     | ReceivedLocationFromZip (Result Http.Error LocationFromZip)
     | ReceivedLocationFromIP (Result Http.Error LocationFromIP)
+    | ReceivedLocationImage (Result Http.Error Images)
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
@@ -70,6 +72,11 @@ setLocalityFromIP location locality =
     { locality | zip = location.zip, city = location.city, lat = String.fromFloat location.latitude, lng = String.fromFloat location.longitude }
 
 
+setPhoto : Images -> Locality -> Locality
+setPhoto newImages locality =
+    { locality | photo = newImages.web }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -78,6 +85,9 @@ update msg model =
 
         FetchLocationFromIP ->
             ( model, fetchLocationFromIP )
+
+        FetchLocationImage ( lat, lng ) ->
+            ( model, fetchLocationImage ( lat, lng ) )
 
         ReceivedLocationFromZip result ->
             case result of
@@ -95,6 +105,14 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        ReceivedLocationImage result ->
+            case result of
+                Ok newImages ->
+                    ( { model | locality = setPhoto newImages model.locality }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
 
 
 -- VIEW
@@ -103,7 +121,15 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
-        [ text ("ZIP:" ++ model.locality.zip), button [ onClick (FetchLocationFromZip "60606"), style "max-width" "50px" ] [ text "Fetch" ], span [] [ text ("City: " ++ model.locality.city) ], text (" | LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
+        [ div []
+            [ button [ onClick (FetchLocationFromZip "60606"), style "max-width" "50px" ] [ text "Fetch" ]
+            , button [ onClick (FetchLocationImage ( model.locality.lat, model.locality.lng )), style "max-width" "50px" ] [ text "Image" ]
+            ]
+        , text ("ZIP:" ++ model.locality.zip)
+        , span [] [ text ("City: " ++ model.locality.city) ]
+        , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
+        , span [] [ text ("Image: " ++ model.locality.photo) ]
+        ]
 
 
 svgWave : Html msg
@@ -132,7 +158,7 @@ locationIPEndpoint =
 
 
 cityImageEndpoint =
-    "https://api.teleport.org/api/locations"
+    "https://api.teleport.org/api/locations/"
 
 
 weatherEndpoint =
@@ -153,6 +179,10 @@ type alias LocationFromIP =
 
 type alias Place =
     { latitude : String, longitude : String, city : String }
+
+
+type alias Images =
+    { mobile : String, web : String }
 
 
 placeDecoder : Decoder Place
@@ -181,6 +211,24 @@ locationIPDecoder =
         |> required "city" Decode.string
 
 
+locationImageDataDecoder : Decoder Images
+locationImageDataDecoder =
+    Decode.field "_embedded" <|
+        Decode.field "location:nearest-urban-areas" <|
+            Decode.index 0 <|
+                Decode.field "_embedded" <|
+                    Decode.field "location:nearest-urban-area" <|
+                        Decode.field "_embedded" <|
+                            Decode.field "ua:images" <|
+                                Decode.field "photos" <|
+                                    Decode.index 0 <|
+                                        Decode.field "image" <|
+                                            (Decode.succeed Images
+                                                |> required "mobile" Decode.string
+                                                |> required "web" Decode.string
+                                            )
+
+
 fetchLocationFromZip : String -> Cmd Msg
 fetchLocationFromZip zip =
     Http.send ReceivedLocationFromZip <|
@@ -191,6 +239,16 @@ fetchLocationFromIP : Cmd Msg
 fetchLocationFromIP =
     Http.send ReceivedLocationFromIP <|
         Http.get locationIPEndpoint locationIPDecoder
+
+
+fetchLocationImage : ( String, String ) -> Cmd Msg
+fetchLocationImage ( lat, lng ) =
+    let
+        fetchURL =
+            cityImageEndpoint ++ lat ++ "," ++ lng ++ "/?embed=location:nearest-urban-areas/location:nearest-urban-area/ua:images/"
+    in
+    Http.send ReceivedLocationImage <|
+        Http.get fetchURL locationImageDataDecoder
 
 
 
