@@ -211,22 +211,20 @@ locationIPDecoder =
         |> required "city" Decode.string
 
 
+imagesDecoder : Decoder Images
+imagesDecoder =
+    Decode.succeed Images
+        |> required "mobile" Decode.string
+        |> required "web" Decode.string
+
+
 locationImageDataDecoder : Decoder Images
 locationImageDataDecoder =
-    Decode.field "_embedded" <|
-        Decode.field "location:nearest-urban-areas" <|
-            Decode.index 0 <|
-                Decode.field "_embedded" <|
-                    Decode.field "location:nearest-urban-area" <|
-                        Decode.field "_embedded" <|
-                            Decode.field "ua:images" <|
-                                Decode.field "photos" <|
-                                    Decode.index 0 <|
-                                        Decode.field "image" <|
-                                            (Decode.succeed Images
-                                                |> required "mobile" Decode.string
-                                                |> required "web" Decode.string
-                                            )
+    Decode.at [ "_embedded", "location:nearest-urban-areas" ] <|
+        Decode.index 0 <|
+            Decode.at [ "_embedded", "location:nearest-urban-area", "_embedded", "ua:images", "photos" ] <|
+                Decode.index 0 <|
+                    Decode.field "image" imagesDecoder
 
 
 fetchLocationFromZip : String -> Cmd Msg
