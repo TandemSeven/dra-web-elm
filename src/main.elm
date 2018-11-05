@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, span, text)
+import Html exposing (Html, button, div, input, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -32,12 +32,12 @@ type alias Locality =
 
 
 type alias Model =
-    { time : String, locality : Locality, weather : List Weather }
+    { zipInput : String, locality : Locality, weather : List Weather }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "00000" "" "" "" "") [], fetchLocationFromIP )
+    ( Model "00000" (Locality "00000" "" "" "" "") [], fetchLocationFromIP )
 
 
 
@@ -53,6 +53,7 @@ type Msg
     | ReceivedLocationFromIP (Result Http.Error LocationFromIP)
     | ReceivedLocationImage (Result Http.Error Images)
     | ReceivedWeather (Result Http.Error (List Weather))
+    | ChangeZipInput String
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
@@ -117,6 +118,9 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        ChangeZipInput text ->
+            ( { model | zipInput = text }, fetchLocationFromZip text )
+
 
 
 -- VIEW
@@ -129,6 +133,7 @@ view model =
             [ button [ onClick (FetchLocationFromZip "60606"), style "max-width" "150px" ] [ text "Chicago" ]
             , button [ onClick (FetchWeather ( model.locality.lat, model.locality.lng )), style "max-width" "150px" ] [ text "Weather" ]
             ]
+        , input [ type_ "text", onInput ChangeZipInput, placeholder "ZIP Code", value model.zipInput ] []
         , text ("ZIP:" ++ model.locality.zip)
         , span [] [ text ("City: " ++ model.locality.city) ]
         , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
