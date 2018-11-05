@@ -24,7 +24,7 @@ main =
 
 
 type alias Weather =
-    { temperature : String, condition : String }
+    { highTemp : Int, unitForTemp : String, condition : String }
 
 
 type alias Locality =
@@ -32,12 +32,12 @@ type alias Locality =
 
 
 type alias Model =
-    { time : String, locality : Locality, weather : Weather }
+    { time : String, locality : Locality, weather : List Weather }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "00000" "" "" "" "") (Weather "" ""), fetchLocationFromIP )
+    ( Model "" (Locality "00000" "" "" "" "") [], fetchLocationFromIP )
 
 
 
@@ -48,23 +48,16 @@ type Msg
     = FetchLocationFromZip String
     | FetchLocationFromIP
     | FetchLocationImage ( String, String )
+    | FetchWeather ( String, String )
     | ReceivedLocationFromZip (Result Http.Error LocationFromZip)
     | ReceivedLocationFromIP (Result Http.Error LocationFromIP)
     | ReceivedLocationImage (Result Http.Error Images)
+    | ReceivedWeather (Result Http.Error (List Weather))
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
 setLocalityFromZip location locality =
-    let
-        place =
-            case List.head location.places of
-                Just firstPlace ->
-                    firstPlace
-
-                Nothing ->
-                    Place "" "" ""
-    in
-    { locality | zip = location.zip, city = place.city, lat = place.latitude, lng = place.longitude }
+    { locality | zip = location.zip, city = location.place.city, lat = location.place.latitude, lng = location.place.longitude }
 
 
 setLocalityFromIP : LocationFromIP -> Locality -> Locality
@@ -89,10 +82,13 @@ update msg model =
         FetchLocationImage ( lat, lng ) ->
             ( model, fetchLocationImage ( lat, lng ) )
 
+        FetchWeather ( lat, lng ) ->
+            ( model, fetchWeeklyWeather ( lat, lng ) )
+
         ReceivedLocationFromZip result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromZip newLocation model.locality }, Cmd.none )
+                    ( { model | locality = setLocalityFromZip newLocation model.locality }, fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ) )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -100,7 +96,7 @@ update msg model =
         ReceivedLocationFromIP result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromIP newLocation model.locality }, Cmd.none )
+                    ( { model | locality = setLocalityFromIP newLocation model.locality }, fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ) )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -109,6 +105,14 @@ update msg model =
             case result of
                 Ok newImages ->
                     ( { model | locality = setPhoto newImages model.locality }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        ReceivedWeather result ->
+            case result of
+                Ok newWeather ->
+                    ( { model | weather = newWeather }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -122,13 +126,18 @@ view : Model -> Html Msg
 view model =
     div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
         [ div []
-            [ button [ onClick (FetchLocationFromZip "60606"), style "max-width" "50px" ] [ text "Fetch" ]
-            , button [ onClick (FetchLocationImage ( model.locality.lat, model.locality.lng )), style "max-width" "50px" ] [ text "Image" ]
+            [ button [ onClick (FetchLocationFromZip "60606"), style "max-width" "150px" ] [ text "Chicago" ]
+            , button [ onClick (FetchWeather ( model.locality.lat, model.locality.lng )), style "max-width" "150px" ] [ text "Weather" ]
             ]
         , text ("ZIP:" ++ model.locality.zip)
         , span [] [ text ("City: " ++ model.locality.city) ]
         , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
         , span [] [ text ("Image: " ++ model.locality.photo) ]
+        , div []
+            (List.map
+                (\day -> div [] [ text (String.fromInt day.highTemp) ])
+                model.weather
+            )
         ]
 
 
@@ -162,7 +171,7 @@ cityImageEndpoint =
 
 
 weatherEndpoint =
-    "https://api.weather.gov/points"
+    "https://api.weather.gov/points/"
 
 
 weatherIconEndpoint =
@@ -170,7 +179,7 @@ weatherIconEndpoint =
 
 
 type alias LocationFromZip =
-    { zip : String, country : String, places : List Place }
+    { zip : String, country : String, place : Place }
 
 
 type alias LocationFromIP =
@@ -198,7 +207,7 @@ locationZipDecoder =
     Decode.succeed LocationFromZip
         |> required "post code" Decode.string
         |> required "country" Decode.string
-        |> required "places" (Decode.list placeDecoder)
+        |> required "places" (Decode.index 0 placeDecoder)
 
 
 locationIPDecoder : Decoder LocationFromIP
@@ -227,6 +236,19 @@ locationImageDataDecoder =
                     Decode.field "image" imagesDecoder
 
 
+weatherListDecoder : Decoder (List Weather)
+weatherListDecoder =
+    Decode.at [ "properties" ] <|
+        Decode.field "periods"
+            (Decode.list
+                (Decode.succeed Weather
+                    |> required "temperature" Decode.int
+                    |> required "temperatureUnit" Decode.string
+                    |> required "shortForecast" Decode.string
+                )
+            )
+
+
 fetchLocationFromZip : String -> Cmd Msg
 fetchLocationFromZip zip =
     Http.send ReceivedLocationFromZip <|
@@ -247,6 +269,26 @@ fetchLocationImage ( lat, lng ) =
     in
     Http.send ReceivedLocationImage <|
         Http.get fetchURL locationImageDataDecoder
+
+
+fetchWeeklyWeather : ( String, String ) -> Cmd Msg
+fetchWeeklyWeather ( lat, lng ) =
+    let
+        fetchURL =
+            weatherEndpoint ++ lat ++ "," ++ lng ++ "/forecast"
+    in
+    Http.send ReceivedWeather <|
+        Http.get fetchURL weatherListDecoder
+
+
+fetchHourlyWeather : ( String, String ) -> Cmd Msg
+fetchHourlyWeather ( lat, lng ) =
+    let
+        fetchURL =
+            weatherEndpoint ++ lat ++ "," ++ lng ++ "/forecast/hourly"
+    in
+    Http.send ReceivedWeather <|
+        Http.get fetchURL weatherListDecoder
 
 
 
