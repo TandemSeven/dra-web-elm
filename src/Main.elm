@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, input, span, text)
+import Html exposing (Html, aside, button, div, header, input, main_, section, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -28,7 +28,7 @@ type alias Weather =
 
 
 type alias Locality =
-    { zip : String, city : String, photo : String, lat : String, lng : String }
+    { zip : String, city : String, region : String, photo : String, lat : String, lng : String }
 
 
 type alias Model =
@@ -37,7 +37,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "00000" (Locality "00000" "" "" "" "") [], fetchLocationFromIP )
+    ( Model "00000" (Locality "00000" "" "" "" "" "") [], fetchLocationFromIP )
 
 
 
@@ -63,7 +63,7 @@ setLocalityFromZip location locality =
 
 setLocalityFromIP : LocationFromIP -> Locality -> Locality
 setLocalityFromIP location locality =
-    { locality | zip = location.zip, city = location.city, lat = String.fromFloat location.latitude, lng = String.fromFloat location.longitude }
+    { locality | zip = location.zip, city = location.city, region = location.region, lat = String.fromFloat location.latitude, lng = String.fromFloat location.longitude }
 
 
 setPhoto : Images -> Locality -> Locality
@@ -89,7 +89,7 @@ update msg model =
         ReceivedLocationFromZip result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromZip newLocation model.locality }, fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ) )
+                    ( { model | locality = setLocalityFromZip newLocation model.locality }, Cmd.batch [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ), fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude ) ] )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -97,7 +97,7 @@ update msg model =
         ReceivedLocationFromIP result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromIP newLocation model.locality }, fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ) )
+                    ( { model | locality = setLocalityFromIP newLocation model.locality }, Cmd.batch [ fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ), fetchWeeklyWeather ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ) ] )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -128,31 +128,55 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
-        [ div []
-            [ button [ onClick (FetchLocationFromZip "60606"), style "max-width" "150px" ] [ text "Chicago" ]
-            , button [ onClick (FetchWeather ( model.locality.lat, model.locality.lng )), style "max-width" "150px" ] [ text "Weather" ]
+    div [ class "app" ]
+        [ div [ class "content" ]
+            [ main_ []
+                [ section [ class "current-weather", style "background-image" ("url(" ++ model.locality.photo ++ ")") ]
+                    [ svgWave
+                    , div [ class "current-weather__container" ]
+                        [ header [ class "current-weather__header" ]
+                            [ button [ class "current-weather__header__icon" ] []
+                            ]
+                        , div [ class "current-weather__grid" ]
+                            [ span [ class "current-weather__location" ]
+                                [ text (model.locality.city ++ ", " ++ model.locality.region)
+                                ]
+                            , span [ class "current-weather__date" ] []
+                            , span [ class "current-weather__forecast" ] []
+                            ]
+                        , span [ class "current-weather__temperature" ] []
+                        ]
+                    ]
+                , section [ class "weather-forecast" ] []
+                ]
+            , aside [] []
             ]
-        , input [ type_ "text", onInput ChangeZipInput, placeholder "ZIP Code", value model.zipInput ] []
-        , text ("ZIP:" ++ model.locality.zip)
-        , span [] [ text ("City: " ++ model.locality.city) ]
-        , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
-        , span [] [ text ("Image: " ++ model.locality.photo) ]
-        , div []
-            (List.map
-                (\day -> div [] [ text (String.fromInt day.highTemp) ])
-                model.weather
-            )
+        , div [ class "loading" ] []
         ]
+
+
+
+--    div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
+--        [ input [ type_ "text", onInput ChangeZipInput, placeholder "ZIP Code", value model.zipInput ] []
+--        , text ("ZIP:" ++ model.locality.zip)
+--        , span [] [ text ("City: " ++ model.locality.city) ]
+--        , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
+--        , span [] [ text ("Image: " ++ model.locality.photo) ]
+--        , div []
+--            (List.map
+--                (\day -> div [] [ text (String.fromInt day.highTemp) ])
+--                model.weather
+--            )
+--        ]
 
 
 svgWave : Html msg
 svgWave =
-    svg [ viewBox "0 0 100 17" ]
-        [ path [ d "M0 30 V15 Q30 3 60 15 V30z" ]
+    svg [ viewBox "0 0 100 17", style "position" "absolute", style "width" "100%", style "bottom" "0", style "left" "0" ]
+        [ path [ d "M0 30 V15 Q30 3 60 15 V30z", style "fill" "#00adcf" ]
             []
         , text "          "
-        , path [ d "M0 30 V12 Q30 17 55 12 T100 11 V30z" ]
+        , path [ d "M0 30 V12 Q30 17 55 12 T100 11 V30z", style "fill" "#ffffff" ]
             []
         , text "        "
         ]
@@ -188,7 +212,7 @@ type alias LocationFromZip =
 
 
 type alias LocationFromIP =
-    { zip : String, country : String, latitude : Float, longitude : Float, city : String }
+    { zip : String, country : String, latitude : Float, longitude : Float, city : String, region : String }
 
 
 type alias Place =
@@ -223,6 +247,7 @@ locationIPDecoder =
         |> required "lat" Decode.float
         |> required "lon" Decode.float
         |> required "city" Decode.string
+        |> required "region" Decode.string
 
 
 imagesDecoder : Decoder Images

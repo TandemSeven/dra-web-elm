@@ -1,0 +1,155 @@
+/* app */
+
+body {
+    margin: 0;
+}
+
+.app {
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    position: relative;
+}
+
+.content {
+    width: 100vw;
+}
+
+.content:after {
+    background-color: rgba(0, 0, 0, 0.8);
+    content: '';
+    display: block;
+    height: 0vh;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    opacity: 0;
+}
+
+
+/* current weather */
+
+.current-weather {
+  background: black no-repeat center;
+  background-size: cover;
+  box-sizing: border-box;
+  color: white;
+  font-size: 1.5rem;
+  min-height: 50vh;
+  padding-bottom: 10vw;
+  position: relative;
+}
+
+.current-weather:before {
+  background-color: rgba(0, 0, 0, 0.5);
+  content: '';
+  display: block;
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100vw;
+}
+
+.current-weather__wave {
+  bottom: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.current-weather h1 {
+  margin: 0;
+}
+
+.current-weather__header {
+  text-align: right;
+}
+.current-weather__header__icon {
+  fill: white;
+  height: 20px;
+}
+.current-weather__header__button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+  padding: 5px;
+}
+
+.current-weather__container {
+  display: grid;
+  grid-gap: 30px;
+  grid-template-columns: 1fr;
+  height: 100%;
+  position: relative;
+  box-sizing: border-box;
+  color: white;
+  padding-block: 4rem;
+  padding-inline: 6rem;
+}
+
+.current-weather__grid {
+  align-items: center;
+  display: grid;
+  grid-gap: 10px;
+  grid-template-areas:
+          'date'
+          'location'
+          'forecast';
+  text-align: center;
+}
+@media screen and (min-width: 768px) {
+  .current-weather__grid {
+    grid-template-areas:
+            'location date'
+            'forecast -';
+    text-align: left;
+  }
+}
+
+.current-weather__location {
+  grid-area: location;
+  font-size: 2em;
+  line-height: 1em;
+}
+
+.current-weather__date {
+  grid-area: date;
+}
+@media screen and (min-width: 768px) {
+  .current-weather__date {
+    text-align: right;
+  }
+}
+
+.current-weather__forecast {
+  grid-area: forecast;
+}
+
+.current-weather__temperature {
+  align-items: flex-start;
+  display: inline-flex;
+  justify-content: center;
+  font-size: 5em;
+  line-height: 1em;
+}
+@media screen and (min-width: 768px) {
+  .current-weather__temperature {
+    justify-content: flex-start;
+  }
+}
+
+.current-weather__temperature {
+  display: flex;
+}
+
+.current-weather__temperature__icon {
+  width: 0.5em;
+}
+
+.current-weather__temperature__symbol {
+  font-size: 0.3em;
+  line-height: 1em;
+  margin-top: 0.75em;
+}
