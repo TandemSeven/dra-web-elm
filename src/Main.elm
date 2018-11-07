@@ -155,21 +155,6 @@ view model =
         ]
 
 
-
---    div [ style "margin" "0", style "display" "flex", style "flex-direction" "column", style "justify-content" "center" ]
---        [ input [ type_ "text", onInput ChangeZipInput, placeholder "ZIP Code", value model.zipInput ] []
---        , text ("ZIP:" ++ model.locality.zip)
---        , span [] [ text ("City: " ++ model.locality.city) ]
---        , span [] [ text ("LatLng: " ++ model.locality.lat ++ ", " ++ model.locality.lng) ]
---        , span [] [ text ("Image: " ++ model.locality.photo) ]
---        , div []
---            (List.map
---                (\day -> div [] [ text (String.fromInt day.highTemp) ])
---                model.weather
---            )
---        ]
-
-
 svgWave : Html msg
 svgWave =
     svg [ viewBox "0 0 100 17", style "position" "absolute", style "width" "100%", style "bottom" "0", style "left" "0" ]
@@ -268,14 +253,12 @@ locationImageDataDecoder =
 
 weatherListDecoder : Decoder (List Weather)
 weatherListDecoder =
-    Decode.at [ "properties" ] <|
-        Decode.field "periods"
-            (Decode.list
-                (Decode.succeed Weather
-                    |> required "temperature" Decode.int
-                    |> required "temperatureUnit" Decode.string
-                    |> required "shortForecast" Decode.string
-                )
+    Decode.at [ "properties", "periods" ] <|
+        Decode.list
+            (Decode.succeed Weather
+                |> required "temperature" Decode.int
+                |> required "temperatureUnit" Decode.string
+                |> required "shortForecast" Decode.string
             )
 
 
