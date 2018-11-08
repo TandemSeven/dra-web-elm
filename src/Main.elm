@@ -1,13 +1,13 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, aside, button, div, header, input, main_, section, span, text)
+import Html exposing (Html, aside, button, div, header, img, input, main_, section, span, strong, sup, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
-import Svg exposing (path, svg)
+import Svg exposing (g, path, svg)
 import Svg.Attributes exposing (d, viewBox)
 
 
@@ -24,7 +24,7 @@ main =
 
 
 type alias Weather =
-    { highTemp : Int, unitForTemp : String, condition : String }
+    { temperature : Int, unitForTemp : String, condition : String }
 
 
 type alias Locality =
@@ -126,6 +126,16 @@ update msg model =
 -- VIEW
 
 
+weatherToday : Model -> Weather
+weatherToday model =
+    case List.head model.weather of
+        Just first ->
+            first
+
+        Nothing ->
+            Weather 0 "-" "-"
+
+
 view : Model -> Html Msg
 view model =
     div [ class "app" ]
@@ -135,16 +145,25 @@ view model =
                     [ svgWave
                     , div [ class "current-weather__container" ]
                         [ header [ class "current-weather__header" ]
-                            [ button [ class "current-weather__header__icon" ] []
+                            [ button [ class "current-weather__header__icon" ]
+                                [ img [ src "assets/svg/utility/menu.svg" ] [] ]
                             ]
                         , div [ class "current-weather__grid" ]
                             [ span [ class "current-weather__location" ]
-                                [ text (model.locality.city ++ ", " ++ model.locality.region)
+                                [ text (model.locality.city ++ ", ")
+                                , strong [] [ text model.locality.region ]
                                 ]
                             , span [ class "current-weather__date" ] []
-                            , span [ class "current-weather__forecast" ] []
+                            , span [ class "current-weather__forecast" ]
+                                [ text (weatherToday model).condition
+                                ]
                             ]
-                        , span [ class "current-weather__temperature" ] []
+                        , span [ class "current-weather__temperature" ]
+                            [ text (String.fromInt (weatherToday model).temperature)
+                            , sup [ class "current-weather__temperature__symbol" ]
+                                [ text ("°" ++ (weatherToday model).unitForTemp)
+                                ]
+                            ]
                         ]
                     ]
                 , section [ class "weather-forecast" ] []
