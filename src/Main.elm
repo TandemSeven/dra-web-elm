@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, aside, button, div, header, img, input, main_, section, span, strong, sup, text)
+import Html exposing (Html, aside, button, div, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -136,6 +136,22 @@ weatherToday model =
             Weather 0 "-" "-"
 
 
+weatherDay : Weather -> Weather -> Html Msg
+weatherDay we1 we2 =
+    li [ class "weather-forecast__period" ]
+        [ p [ class "weather-forecast__period__name" ] []
+        , svg [ class "weather-icon weather-forecast__period__icon" ] []
+        , p []
+            [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
+                [ strong []
+                    [ text (String.fromInt we1.temperature ++ "°F")
+                    ]
+                ]
+            , span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--low" ] []
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div [ class "app" ]
@@ -145,8 +161,8 @@ view model =
                     [ svgWave
                     , div [ class "current-weather__container" ]
                         [ header [ class "current-weather__header" ]
-                            [ button [ class "current-weather__header__icon" ]
-                                [ img [ src "assets/svg/utility/menu.svg" ] [] ]
+                            [ button [ class "current-weather__header__button" ]
+                                [ img [ class "current-weather__header__icon", src "menu.svg" ] [] ]
                             ]
                         , div [ class "current-weather__grid" ]
                             [ span [ class "current-weather__location" ]
@@ -166,7 +182,11 @@ view model =
                             ]
                         ]
                     ]
-                , section [ class "weather-forecast" ] []
+                , section [ class "weather-forecast" ]
+                    [ div [ class "weather-forecast__container" ]
+                        [ ul [] []
+                        ]
+                    ]
                 ]
             , aside [] []
             ]
