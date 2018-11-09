@@ -140,10 +140,10 @@ getCombinedDayNightWeather : List Weather -> List (List Weather) -> List (List W
 getCombinedDayNightWeather weatherList combinedList =
     case List.length weatherList of
         0 ->
-            combinedList
+            List.reverse combinedList
 
         1 ->
-            combinedList
+            List.reverse combinedList
 
         _ ->
             getCombinedDayNightWeather (List.drop 2 weatherList) (List.take 2 weatherList :: combinedList)
