@@ -7,8 +7,8 @@ import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
-import Svg exposing (g, path, svg)
-import Svg.Attributes exposing (d, viewBox)
+import List.Extra exposing (getAt)
+import SvgAssets exposing (..)
 
 
 
@@ -136,18 +136,50 @@ weatherToday model =
             Weather 0 "-" "-"
 
 
-weatherDay : Weather -> Weather -> Html Msg
-weatherDay we1 we2 =
+getCombinedDayNightWeather : List Weather -> List (List Weather) -> List (List Weather)
+getCombinedDayNightWeather weatherList combinedList =
+    case List.length weatherList of
+        0 ->
+            combinedList
+
+        1 ->
+            combinedList
+
+        _ ->
+            getCombinedDayNightWeather (List.drop 2 weatherList) (List.take 2 weatherList :: combinedList)
+
+
+getWeatherForDay : List Weather -> Html Msg
+getWeatherForDay day =
+    let
+        we1 =
+            case getAt 0 day of
+                Just first ->
+                    first
+
+                Nothing ->
+                    Weather 0 "-" "-"
+
+        we2 =
+            case getAt 1 day of
+                Just second ->
+                    second
+
+                Nothing ->
+                    Weather 0 "-" "-"
+    in
     li [ class "weather-forecast__period" ]
         [ p [ class "weather-forecast__period__name" ] []
-        , svg [ class "weather-icon weather-forecast__period__icon" ] []
+        , div [ class "weather-icon weather-forecast__period__icon" ] []
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
                 [ strong []
-                    [ text (String.fromInt we1.temperature ++ "°F")
+                    [ text (String.fromInt we1.temperature ++ "°" ++ we1.unitForTemp)
                     ]
                 ]
-            , span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--low" ] []
+            , span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--low" ]
+                [ text (String.fromInt we2.temperature ++ "°" ++ we2.unitForTemp)
+                ]
             ]
         ]
 
@@ -162,7 +194,7 @@ view model =
                     , div [ class "current-weather__container" ]
                         [ header [ class "current-weather__header" ]
                             [ button [ class "current-weather__header__button" ]
-                                [ img [ class "current-weather__header__icon", src "menu.svg" ] [] ]
+                                [ svgMenu ]
                             ]
                         , div [ class "current-weather__grid" ]
                             [ span [ class "current-weather__location" ]
@@ -184,25 +216,13 @@ view model =
                     ]
                 , section [ class "weather-forecast" ]
                     [ div [ class "weather-forecast__container" ]
-                        [ ul [] []
+                        [ ul [] (List.map getWeatherForDay (getCombinedDayNightWeather model.weather []))
                         ]
                     ]
                 ]
             , aside [] []
             ]
         , div [ class "loading" ] []
-        ]
-
-
-svgWave : Html msg
-svgWave =
-    svg [ viewBox "0 0 100 17", style "position" "absolute", style "width" "100%", style "bottom" "0", style "left" "0" ]
-        [ path [ d "M0 30 V15 Q30 3 60 15 V30z", style "fill" "#00adcf" ]
-            []
-        , text "          "
-        , path [ d "M0 30 V12 Q30 17 55 12 T100 11 V30z", style "fill" "#ffffff" ]
-            []
-        , text "        "
         ]
 
 

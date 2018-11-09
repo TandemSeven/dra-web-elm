@@ -153,4 +153,65 @@ body {
   margin-top: 0.75em;
 }
 
-/**/
+/* weather forecast */
+.weather-forecast {
+    box-sizing: border-box;
+    min-height: 50vh;
+    padding: 20px;
+}
+
+.weather-forecast__container {
+    margin-inline: auto;
+    max-width: 65rem;
+    text-align: center;
+    overflow-x: scroll;
+}
+
+.weather-forecast p {
+    margin: 0;
+}
+
+.weather-forecast ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.weather-forecast ul li {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 20px;
+    text-align: center;
+}
+
+.weather-forecast__period {
+    padding: 20px 30px;
+    text-align: center;
+}
+
+.weather-forecast__period__name {
+    font-size: 1.5rem;
+}
+
+.weather-forecast__period:first-of-type .weather-forecast__period__name {
+    font-weight: 700;
+}
+
+.weather-forecast__period__icon {
+    margin-inline: auto;
+    height: 3.75rem;
+    width: auto;
+}
+
+.weather-forecast__period__temperature {
+    font-size: 1rem;
+}
+
+.weather-forecast__period__temperature
++ .weather-forecast__period__temperature {
+    margin-left: 5px;
+}
