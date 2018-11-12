@@ -1,13 +1,14 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
-import Html.Attributes exposing (class, placeholder, style, type_)
+import Html exposing (Html, a, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
+import Html.Attributes exposing (class, href, placeholder, style, type_)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra exposing (getAt)
+import Set exposing (Set)
 import SvgAssets exposing (..)
 
 
@@ -32,12 +33,12 @@ type alias Locality =
 
 
 type alias Model =
-    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool }
+    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool, searchedZips : Set String }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False, fetchLocationFromIP )
+    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False Set.empty, fetchLocationFromIP )
 
 
 
@@ -45,7 +46,7 @@ init _ =
 
 
 type Msg
-    = FetchLocationFromZip
+    = FetchLocationFromZip String
     | FetchLocationFromIP
     | FetchLocationImage ( String, String )
     | FetchWeather ( String, String )
@@ -54,6 +55,7 @@ type Msg
     | ReceivedLocationImage (Result Http.Error Images)
     | ReceivedWeather (Result Http.Error (List Weather))
     | ChangeZipInput String
+    | ClearSearchedZips
     | OpenMenu
     | CloseMenu
 
@@ -76,8 +78,8 @@ setPhoto newImages locality =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchLocationFromZip ->
-            ( { model | menuOpen = False, weather = [] }, fetchLocationFromZip model.zipInput )
+        FetchLocationFromZip zip ->
+            ( { model | menuOpen = False, weather = [] }, fetchLocationFromZip zip )
 
         FetchLocationFromIP ->
             ( model, fetchLocationFromIP )
@@ -91,7 +93,7 @@ update msg model =
         ReceivedLocationFromZip result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromZip newLocation model.locality }, Cmd.batch [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ), fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude ) ] )
+                    ( { model | locality = setLocalityFromZip newLocation model.locality, searchedZips = Set.insert newLocation.zip model.searchedZips }, Cmd.batch [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ), fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude ) ] )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -122,6 +124,9 @@ update msg model =
 
         ChangeZipInput text ->
             ( { model | zipInput = text }, Cmd.none )
+
+        ClearSearchedZips ->
+            ( { model | searchedZips = Set.empty }, Cmd.none )
 
         OpenMenu ->
             ( { model | menuOpen = True }, Cmd.none )
@@ -248,7 +253,7 @@ view model =
                     class "sidebar"
                 ]
                 [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose ]
-                , form [ class "sidebar__form", onSubmit FetchLocationFromZip ]
+                , form [ class "sidebar__form", onSubmit (FetchLocationFromZip model.zipInput) ]
                     [ input
                         [ class "input sidebar__form__input"
                         , placeholder "Enter Zip Code"
@@ -258,11 +263,19 @@ view model =
                     , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
                     , button [ class "sidebar__form__current button button--tertiary", type_ "button" ] [ text "Current Location" ]
                     ]
-                , div []
-                    [ h2 [] [ text "Recent Zip Code Searches:" ]
-                    , ul [] []
-                    , button [ class "button button--secondary" ] [ text "Clear Recent Zip Codes" ]
-                    ]
+                , if Set.size model.searchedZips > 0 then
+                    div [ class "recent-searches" ]
+                        [ h2 [] [ text "Recent Zip Code Searches:" ]
+                        , ul []
+                            (List.map
+                                (\el -> li [ onClick (FetchLocationFromZip el) ] [ a [ href "#" ] [ text el ] ])
+                                (Set.toList model.searchedZips)
+                            )
+                        , button [ class "button button--secondary", onClick ClearSearchedZips ] [ text "Clear Recent Zip Codes" ]
+                        ]
+
+                  else
+                    div [] []
                 ]
             ]
         , loading model
