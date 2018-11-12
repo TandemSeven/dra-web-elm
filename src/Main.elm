@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, aside, button, div, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
+import Html.Attributes exposing (class, placeholder, style, type_)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -32,12 +32,12 @@ type alias Locality =
 
 
 type alias Model =
-    { zipInput : String, locality : Locality, weather : List Weather }
+    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "00000" (Locality "00000" "" "" "" "" "") [], fetchLocationFromIP )
+    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False, fetchLocationFromIP )
 
 
 
@@ -45,7 +45,7 @@ init _ =
 
 
 type Msg
-    = FetchLocationFromZip String
+    = FetchLocationFromZip
     | FetchLocationFromIP
     | FetchLocationImage ( String, String )
     | FetchWeather ( String, String )
@@ -54,11 +54,13 @@ type Msg
     | ReceivedLocationImage (Result Http.Error Images)
     | ReceivedWeather (Result Http.Error (List Weather))
     | ChangeZipInput String
+    | OpenMenu
+    | CloseMenu
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
 setLocalityFromZip location locality =
-    { locality | zip = location.zip, city = location.place.city, lat = location.place.latitude, lng = location.place.longitude }
+    { locality | zip = location.zip, city = location.place.city, region = location.place.region, lat = location.place.latitude, lng = location.place.longitude }
 
 
 setLocalityFromIP : LocationFromIP -> Locality -> Locality
@@ -74,8 +76,8 @@ setPhoto newImages locality =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchLocationFromZip url ->
-            ( model, fetchLocationFromZip url )
+        FetchLocationFromZip ->
+            ( { model | menuOpen = False, weather = [] }, fetchLocationFromZip model.zipInput )
 
         FetchLocationFromIP ->
             ( model, fetchLocationFromIP )
@@ -119,7 +121,13 @@ update msg model =
                     ( model, Cmd.none )
 
         ChangeZipInput text ->
-            ( { model | zipInput = text }, fetchLocationFromZip text )
+            ( { model | zipInput = text }, Cmd.none )
+
+        OpenMenu ->
+            ( { model | menuOpen = True }, Cmd.none )
+
+        CloseMenu ->
+            ( { model | menuOpen = False }, Cmd.none )
 
 
 
@@ -135,8 +143,7 @@ loading model =
 
     else
         div [ class "loading" ]
-            [ svgRefresh
-            ]
+            []
 
 
 weatherToday : Model -> Weather
@@ -206,7 +213,7 @@ view model =
                     [ svgWave
                     , div [ class "current-weather__container" ]
                         [ header [ class "current-weather__header" ]
-                            [ button [ class "current-weather__header__button" ]
+                            [ button [ class "current-weather__header__button", onClick OpenMenu ]
                                 [ svgMenu ]
                             ]
                         , div [ class "current-weather__grid" ]
@@ -233,9 +240,29 @@ view model =
                         ]
                     ]
                 ]
-            , aside [ class "sidebar" ]
-                [ button [ class "sidebar__close" ] [ svgClose ]
-                , div [] []
+            , aside
+                [ if model.menuOpen then
+                    class "sidebar sidebar--opened"
+
+                  else
+                    class "sidebar"
+                ]
+                [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose ]
+                , form [ class "sidebar__form", onSubmit FetchLocationFromZip ]
+                    [ input
+                        [ class "input sidebar__form__input"
+                        , placeholder "Enter Zip Code"
+                        , onInput ChangeZipInput
+                        ]
+                        [ text model.zipInput ]
+                    , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
+                    , button [ class "sidebar__form__current button button--tertiary", type_ "button" ] [ text "Current Location" ]
+                    ]
+                , div []
+                    [ h2 [] [ text "Recent Zip Code Searches:" ]
+                    , ul [] []
+                    , button [ class "button button--secondary" ] [ text "Clear Recent Zip Codes" ]
+                    ]
                 ]
             ]
         , loading model
@@ -276,7 +303,7 @@ type alias LocationFromIP =
 
 
 type alias Place =
-    { latitude : String, longitude : String, city : String }
+    { latitude : String, longitude : String, city : String, region : String }
 
 
 type alias Images =
@@ -289,6 +316,7 @@ placeDecoder =
         |> required "latitude" Decode.string
         |> required "longitude" Decode.string
         |> required "place name" Decode.string
+        |> required "state abbreviation" Decode.string
 
 
 locationZipDecoder : Decoder LocationFromZip
