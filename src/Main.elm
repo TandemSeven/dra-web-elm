@@ -82,7 +82,7 @@ update msg model =
             ( { model | menuOpen = False, weather = [] }, fetchLocationFromZip zip )
 
         FetchLocationFromIP ->
-            ( model, fetchLocationFromIP )
+            ( { model | menuOpen = False, weather = [] }, fetchLocationFromIP )
 
         FetchLocationImage ( lat, lng ) ->
             ( model, fetchLocationImage ( lat, lng ) )
@@ -252,7 +252,7 @@ view model =
                   else
                     class "sidebar"
                 ]
-                [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose ]
+                [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose "sidebar__icon" ]
                 , form [ class "sidebar__form", onSubmit (FetchLocationFromZip model.zipInput) ]
                     [ input
                         [ class "input sidebar__form__input"
@@ -261,7 +261,7 @@ view model =
                         ]
                         [ text model.zipInput ]
                     , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
-                    , button [ class "sidebar__form__current button button--tertiary", type_ "button" ] [ text "Current Location" ]
+                    , button [ class "sidebar__form__current button button--tertiary", type_ "button", onClick FetchLocationFromIP ] [ text "Current Location" ]
                     ]
                 , if Set.size model.searchedZips > 0 then
                     div [ class "recent-searches" ]

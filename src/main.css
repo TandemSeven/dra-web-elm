@@ -350,7 +350,7 @@ body {
     text-decoration: none;
 }
 
-/* form buttons */
+/* form button and input */
 
 .button {
     box-sizing: border-box;
@@ -381,4 +381,15 @@ body {
     background-color: transparent;
     border: 1px solid #00adcf;
     color: #00adcf;
+}
+
+.input {
+    box-sizing: border-box;
+    border: none;
+    border-radius: 30px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    height: 46px;
+    outline: none;
+    padding: 15px;
 }
