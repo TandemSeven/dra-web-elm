@@ -126,6 +126,19 @@ update msg model =
 -- VIEW
 
 
+loading : Model -> Html Msg
+loading model =
+    if List.length model.weather == 0 then
+        div [ class "loading loading--visible" ]
+            [ svgRefresh
+            ]
+
+    else
+        div [ class "loading" ]
+            [ svgRefresh
+            ]
+
+
 weatherToday : Model -> Weather
 weatherToday model =
     case List.head model.weather of
@@ -220,9 +233,12 @@ view model =
                         ]
                     ]
                 ]
-            , aside [] []
+            , aside [ class "sidebar" ]
+                [ button [ class "sidebar__close" ] [ svgClose ]
+                , div [] []
+                ]
             ]
-        , div [ class "loading" ] []
+        , loading model
         ]
 
 

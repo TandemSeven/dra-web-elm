@@ -1,4 +1,4 @@
-module SvgAssets exposing (svgMenu, svgRefresh, svgWave)
+module SvgAssets exposing (svgClose, svgCompass, svgMenu, svgRefresh, svgWave)
 
 import Html exposing (Html, text)
 import Html.Attributes exposing (style)
