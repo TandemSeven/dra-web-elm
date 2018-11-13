@@ -33,12 +33,12 @@ type alias Locality =
 
 
 type alias Model =
-    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool, searchedZips : Set String }
+    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool, searchedZips : Set String, loading : Bool }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False Set.empty, fetchLocationFromIP )
+    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False Set.empty False, fetchLocationFromIP )
 
 
 
@@ -79,10 +79,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchLocationFromZip zip ->
-            ( { model | menuOpen = False, weather = [] }, fetchLocationFromZip zip )
+            ( { model | menuOpen = False, loading = True }, fetchLocationFromZip zip )
 
         FetchLocationFromIP ->
-            ( { model | menuOpen = False, weather = [] }, fetchLocationFromIP )
+            ( { model | menuOpen = False, loading = True }, fetchLocationFromIP )
 
         FetchLocationImage ( lat, lng ) ->
             ( model, fetchLocationImage ( lat, lng ) )
@@ -96,7 +96,7 @@ update msg model =
                     ( { model | locality = setLocalityFromZip newLocation model.locality, searchedZips = Set.insert newLocation.zip model.searchedZips }, Cmd.batch [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ), fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude ) ] )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | loading = False }, Cmd.none )
 
         ReceivedLocationFromIP result ->
             case result of
@@ -104,7 +104,7 @@ update msg model =
                     ( { model | locality = setLocalityFromIP newLocation model.locality }, Cmd.batch [ fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ), fetchWeeklyWeather ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ) ] )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | loading = False }, Cmd.none )
 
         ReceivedLocationImage result ->
             case result of
@@ -112,15 +112,15 @@ update msg model =
                     ( { model | locality = setPhoto newImages model.locality }, Cmd.none )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | loading = False }, Cmd.none )
 
         ReceivedWeather result ->
             case result of
                 Ok newWeather ->
-                    ( { model | weather = newWeather }, Cmd.none )
+                    ( { model | weather = newWeather, loading = False }, Cmd.none )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | loading = False }, Cmd.none )
 
         ChangeZipInput text ->
             ( { model | zipInput = text }, Cmd.none )
@@ -141,7 +141,7 @@ update msg model =
 
 loading : Model -> Html Msg
 loading model =
-    if List.length model.weather == 0 then
+    if model.loading then
         div [ class "loading loading--visible" ]
             [ svgRefresh
             ]
