@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (Html, a, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
-import Html.Attributes exposing (class, href, placeholder, style, type_, value)
+import Html.Attributes exposing (class, href, placeholder, src, style, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -38,7 +38,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty False, fetchLocationFromIP )
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True, fetchLocationFromIP )
 
 
 
@@ -209,7 +209,7 @@ getWeatherForDay day =
     in
     li [ class "weather-forecast__period" ]
         [ p [ class "weather-forecast__period__name" ] []
-        , div [ class "weather-icon weather-forecast__period__icon" ] []
+        , img [ class "weather-icon weather-forecast__period__icon", src (getWeatherCondition we1) ] []
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
                 [ strong []
@@ -221,6 +221,43 @@ getWeatherForDay day =
                 ]
             ]
         ]
+
+
+weatherConditions =
+    [ "snow", "cloudy", "sunny", "rain", "snow" ]
+
+
+findStringIn : List String -> String -> String
+findStringIn strings stringToSearchIn =
+    case List.head strings of
+        Just string ->
+            if String.contains string stringToSearchIn then
+                string
+
+            else
+                findStringIn (List.drop 1 strings) stringToSearchIn
+
+        Nothing ->
+            ""
+
+
+getWeatherCondition : Weather -> String
+getWeatherCondition weather =
+    case findStringIn weatherConditions (String.toLower weather.condition) of
+        "sunny" ->
+            "https://image.flaticon.com/icons/svg/365/365237.svg"
+
+        "cloudy" ->
+            "https://image.flaticon.com/icons/svg/365/365229.svg"
+
+        "rain" ->
+            "https://image.flaticon.com/icons/svg/365/365224.svg"
+
+        "snow" ->
+            "https://image.flaticon.com/icons/svg/365/365233.svg"
+
+        _ ->
+            "https://image.flaticon.com/icons/svg/148/148766.svg"
 
 
 view : Model -> Html Msg
@@ -246,9 +283,12 @@ view model =
                                 ]
                             ]
                         , span [ class "current-weather__temperature" ]
-                            [ text (String.fromInt (weatherToday model).temperature)
-                            , sup [ class "current-weather__temperature__symbol" ]
-                                [ text ("°" ++ (weatherToday model).unitForTemp)
+                            [ img [ class "weather-icon current-weather__temperature__icon", src (getWeatherCondition (weatherToday model)) ] []
+                            , span [ class "current-weather__temperature__value" ]
+                                [ text (String.fromInt (weatherToday model).temperature)
+                                , sup [ class "current-weather__temperature__symbol" ]
+                                    [ text ("°" ++ (weatherToday model).unitForTemp)
+                                    ]
                                 ]
                             ]
                         ]
