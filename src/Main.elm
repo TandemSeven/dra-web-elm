@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (Html, a, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
-import Html.Attributes exposing (class, href, placeholder, style, type_)
+import Html.Attributes exposing (class, href, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -38,7 +38,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "00000" (Locality "00000" "" "" "" "" "") [] False Set.empty False, fetchLocationFromIP )
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty False, fetchLocationFromIP )
 
 
 
@@ -93,7 +93,16 @@ update msg model =
         ReceivedLocationFromZip result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromZip newLocation model.locality, searchedZips = Set.insert newLocation.zip model.searchedZips }, Cmd.batch [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude ), fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude ) ] )
+                    ( { model
+                        | locality = setLocalityFromZip newLocation model.locality
+                        , searchedZips = Set.insert newLocation.zip model.searchedZips
+                        , zipInput = ""
+                      }
+                    , Cmd.batch
+                        [ fetchLocationImage ( newLocation.place.latitude, newLocation.place.longitude )
+                        , fetchWeeklyWeather ( newLocation.place.latitude, newLocation.place.longitude )
+                        ]
+                    )
 
                 Err _ ->
                     ( { model | loading = False }, Cmd.none )
@@ -101,7 +110,12 @@ update msg model =
         ReceivedLocationFromIP result ->
             case result of
                 Ok newLocation ->
-                    ( { model | locality = setLocalityFromIP newLocation model.locality }, Cmd.batch [ fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ), fetchWeeklyWeather ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude ) ] )
+                    ( { model | locality = setLocalityFromIP newLocation model.locality }
+                    , Cmd.batch
+                        [ fetchLocationImage ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude )
+                        , fetchWeeklyWeather ( String.fromFloat newLocation.latitude, String.fromFloat newLocation.longitude )
+                        ]
+                    )
 
                 Err _ ->
                     ( { model | loading = False }, Cmd.none )
@@ -258,8 +272,9 @@ view model =
                         [ class "input sidebar__form__input"
                         , placeholder "Enter Zip Code"
                         , onInput ChangeZipInput
+                        , value model.zipInput
                         ]
-                        [ text model.zipInput ]
+                        []
                     , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
                     , button [ class "sidebar__form__current button button--tertiary", type_ "button", onClick FetchLocationFromIP ] [ text "Current Location" ]
                     ]
