@@ -281,6 +281,11 @@ getWeatherCondition weather =
             "https://image.flaticon.com/icons/svg/148/148766.svg"
 
 
+clockDisplay : Model -> Html msg
+clockDisplay model =
+    text (String.padLeft 2 '0' (String.fromInt (Time.toHour model.timezone model.time)) ++ ":" ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute model.timezone model.time)))
+
+
 view : Model -> Html Msg
 view model =
     div [ class "app" ]
@@ -299,8 +304,7 @@ view model =
                                 , strong [] [ text model.locality.region ]
                                 ]
                             , span [ class "current-weather__date" ]
-                                [ text (String.fromInt (Time.toHour model.timezone model.time) ++ ":" ++ String.fromInt (Time.toMinute model.timezone model.time))
-                                ]
+                                [ clockDisplay model ]
                             , span [ class "current-weather__forecast" ]
                                 [ text (weatherToday model).condition
                                 ]
