@@ -5,6 +5,7 @@ import Html exposing (Html, a, aside, button, div, form, h2, header, img, input,
 import Html.Attributes exposing (class, href, placeholder, src, style, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
+import Iso8601
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra exposing (getAt)
@@ -27,7 +28,7 @@ main =
 
 
 type alias Weather =
-    { temperature : Int, unitForTemp : String, condition : String }
+    { temperature : Int, unitForTemp : String, condition : String, time : Time.Posix }
 
 
 type alias Locality =
@@ -48,7 +49,9 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0), Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here, Task.perform Tick Time.now ] )
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0)
+    , Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here, Task.perform Tick Time.now ]
+    )
 
 
 
@@ -74,12 +77,24 @@ type Msg
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
 setLocalityFromZip location locality =
-    { locality | zip = location.zip, city = location.place.city, region = location.place.region, lat = location.place.latitude, lng = location.place.longitude }
+    { locality
+        | zip = location.zip
+        , city = location.place.city
+        , region = location.place.region
+        , lat = location.place.latitude
+        , lng = location.place.longitude
+    }
 
 
 setLocalityFromIP : LocationFromIP -> Locality -> Locality
 setLocalityFromIP location locality =
-    { locality | zip = location.zip, city = location.city, region = location.region, lat = String.fromFloat location.latitude, lng = String.fromFloat location.longitude }
+    { locality
+        | zip = location.zip
+        , city = location.city
+        , region = location.region
+        , lat = String.fromFloat location.latitude
+        , lng = String.fromFloat location.longitude
+    }
 
 
 setPhoto : Images -> Locality -> Locality
@@ -190,7 +205,7 @@ weatherToday model =
             first
 
         Nothing ->
-            Weather 0 "-" "-"
+            Weather 0 "-" "-" (Time.millisToPosix 0)
 
 
 getCombinedDayNightWeather : List Weather -> List (List Weather) -> List (List Weather)
@@ -206,8 +221,8 @@ getCombinedDayNightWeather weatherList combinedList =
             getCombinedDayNightWeather (List.drop 2 weatherList) (List.take 2 weatherList :: combinedList)
 
 
-getWeatherForDay : List Weather -> Html Msg
-getWeatherForDay day =
+getWeatherForDay : Time.Zone -> List Weather -> Html Msg
+getWeatherForDay timezone day =
     let
         we1 =
             case getAt 0 day of
@@ -215,7 +230,7 @@ getWeatherForDay day =
                     first
 
                 Nothing ->
-                    Weather 0 "-" "-"
+                    Weather 0 "-" "-" (Time.millisToPosix 0)
 
         we2 =
             case getAt 1 day of
@@ -223,10 +238,33 @@ getWeatherForDay day =
                     second
 
                 Nothing ->
-                    Weather 0 "-" "-"
+                    Weather 0 "-" "-" (Time.millisToPosix 0)
+
+        weekday =
+            case Time.toWeekday timezone we1.time of
+                Mon ->
+                    "Mon"
+
+                Tue ->
+                    "Tue"
+
+                Wed ->
+                    "Wed"
+
+                Thu ->
+                    "Thu"
+
+                Fri ->
+                    "Fri"
+
+                Sat ->
+                    "Sat"
+
+                Sun ->
+                    "Sun"
     in
     li [ class "weather-forecast__period" ]
-        [ p [ class "weather-forecast__period__name" ] []
+        [ p [ class "weather-forecast__period__name" ] [ text weekday ]
         , img [ class "weather-icon weather-forecast__period__icon", src (getWeatherCondition we2) ] []
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
@@ -348,7 +386,11 @@ view model =
                                 ]
                             ]
                         , span [ class "current-weather__temperature" ]
-                            [ img [ class "weather-icon current-weather__temperature__icon", src (getWeatherCondition (weatherToday model)) ] []
+                            [ img
+                                [ class "weather-icon current-weather__temperature__icon"
+                                , src (getWeatherCondition (weatherToday model))
+                                ]
+                                []
                             , span [ class "current-weather__temperature__value" ]
                                 [ text (String.fromInt (weatherToday model).temperature)
                                 , sup [ class "current-weather__temperature__symbol" ]
@@ -360,7 +402,7 @@ view model =
                     ]
                 , section [ class "weather-forecast" ]
                     [ div [ class "weather-forecast__container" ]
-                        [ ul [] (List.map getWeatherForDay (getCombinedDayNightWeather model.weather []))
+                        [ ul [] (List.map (getWeatherForDay model.timezone) (getCombinedDayNightWeather model.weather []))
                         ]
                     ]
                 ]
@@ -495,6 +537,7 @@ weatherListDecoder =
                 |> required "temperature" Decode.int
                 |> required "temperatureUnit" Decode.string
                 |> required "shortForecast" Decode.string
+                |> required "startTime" Iso8601.decoder
             )
 
 
