@@ -11,7 +11,7 @@ import List.Extra exposing (getAt)
 import Set exposing (Set)
 import SvgAssets exposing (..)
 import Task
-import Time
+import Time exposing (Weekday(..))
 
 
 
@@ -48,7 +48,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0), Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here ] )
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0), Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here, Task.perform Tick Time.now ] )
 
 
 
@@ -283,7 +283,45 @@ getWeatherCondition weather =
 
 clockDisplay : Model -> Html msg
 clockDisplay model =
-    text (String.padLeft 2 '0' (String.fromInt (Time.toHour model.timezone model.time)) ++ ":" ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute model.timezone model.time)))
+    let
+        hour =
+            Time.toHour model.timezone model.time
+
+        minute =
+            String.padLeft 2 '0' <|
+                String.fromInt <|
+                    Time.toMinute model.timezone model.time
+
+        weekday =
+            case Time.toWeekday model.timezone model.time of
+                Mon ->
+                    "Monday"
+
+                Tue ->
+                    "Tuesday"
+
+                Wed ->
+                    "Wednesday"
+
+                Thu ->
+                    "Thursday"
+
+                Fri ->
+                    "Friday"
+
+                Sat ->
+                    "Saturday"
+
+                Sun ->
+                    "Sunday"
+    in
+    text
+        (if hour > 12 then
+            weekday ++ " " ++ String.fromInt (hour - 12) ++ ":" ++ minute ++ " PM"
+
+         else
+            weekday ++ " " ++ String.fromInt hour ++ ":" ++ minute ++ " AM"
+        )
 
 
 view : Model -> Html Msg
@@ -508,4 +546,4 @@ fetchHourlyWeather ( lat, lng ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every 1000 Tick
+    Time.every (1000 * 60) Tick
