@@ -10,6 +10,8 @@ import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra exposing (getAt)
 import Set exposing (Set)
 import SvgAssets exposing (..)
+import Task
+import Time
 
 
 
@@ -33,12 +35,20 @@ type alias Locality =
 
 
 type alias Model =
-    { zipInput : String, locality : Locality, weather : List Weather, menuOpen : Bool, searchedZips : Set String, loading : Bool }
+    { zipInput : String
+    , locality : Locality
+    , weather : List Weather
+    , menuOpen : Bool
+    , searchedZips : Set String
+    , loading : Bool
+    , timezone : Time.Zone
+    , time : Time.Posix
+    }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True, fetchLocationFromIP )
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0), Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here ] )
 
 
 
@@ -58,6 +68,8 @@ type Msg
     | ClearSearchedZips
     | OpenMenu
     | CloseMenu
+    | Tick Time.Posix
+    | AdjustTimeZone Time.Zone
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
@@ -148,6 +160,12 @@ update msg model =
         CloseMenu ->
             ( { model | menuOpen = False }, Cmd.none )
 
+        Tick newTime ->
+            ( { model | time = newTime }, Cmd.none )
+
+        AdjustTimeZone newZone ->
+            ( { model | timezone = newZone }, Cmd.none )
+
 
 
 -- VIEW
@@ -209,7 +227,7 @@ getWeatherForDay day =
     in
     li [ class "weather-forecast__period" ]
         [ p [ class "weather-forecast__period__name" ] []
-        , img [ class "weather-icon weather-forecast__period__icon", src (getWeatherCondition we1) ] []
+        , img [ class "weather-icon weather-forecast__period__icon", src (getWeatherCondition we2) ] []
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
                 [ strong []
@@ -224,7 +242,7 @@ getWeatherForDay day =
 
 
 weatherConditions =
-    [ "snow", "cloudy", "sunny", "rain", "snow" ]
+    [ "snow", "sleet", "cloudy", "sunny", "rain", "snow" ]
 
 
 findStringIn : List String -> String -> String
@@ -256,6 +274,9 @@ getWeatherCondition weather =
         "snow" ->
             "https://image.flaticon.com/icons/svg/365/365233.svg"
 
+        "sleet" ->
+            "https://image.flaticon.com/icons/svg/365/365230.svg"
+
         _ ->
             "https://image.flaticon.com/icons/svg/148/148766.svg"
 
@@ -277,7 +298,9 @@ view model =
                                 [ text (model.locality.city ++ ", ")
                                 , strong [] [ text model.locality.region ]
                                 ]
-                            , span [ class "current-weather__date" ] []
+                            , span [ class "current-weather__date" ]
+                                [ text (String.fromInt (Time.toHour model.timezone model.time) ++ ":" ++ String.fromInt (Time.toMinute model.timezone model.time))
+                                ]
                             , span [ class "current-weather__forecast" ]
                                 [ text (weatherToday model).condition
                                 ]
@@ -481,4 +504,4 @@ fetchHourlyWeather ( lat, lng ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Time.every 1000 Tick
