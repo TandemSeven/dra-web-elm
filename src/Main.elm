@@ -265,7 +265,7 @@ getWeatherForDay timezone day =
     in
     li [ class "weather-forecast__period" ]
         [ p [ class "weather-forecast__period__name" ] [ text weekday ]
-        , img [ class "weather-icon weather-forecast__period__icon", src (getWeatherCondition we2) ] []
+        , div [ class "weather-icon weather-forecast__period__icon" ] [ getWeatherCondition we2 ]
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
                 [ strong []
@@ -297,26 +297,26 @@ findStringIn strings stringToSearchIn =
             ""
 
 
-getWeatherCondition : Weather -> String
+getWeatherCondition : Weather -> Html msg
 getWeatherCondition weather =
     case findStringIn weatherConditions (String.toLower weather.condition) of
         "sunny" ->
-            "https://image.flaticon.com/icons/svg/365/365237.svg"
+            svgWeatherSunny
 
         "cloudy" ->
-            "https://image.flaticon.com/icons/svg/365/365229.svg"
+            svgWeatherCloudy
 
         "rain" ->
-            "https://image.flaticon.com/icons/svg/365/365224.svg"
+            svgWeatherRain
 
         "snow" ->
-            "https://image.flaticon.com/icons/svg/365/365233.svg"
+            svgWeatherSnow
 
         "sleet" ->
-            "https://image.flaticon.com/icons/svg/365/365230.svg"
+            svgWeatherSleet
 
         _ ->
-            "https://image.flaticon.com/icons/svg/148/148766.svg"
+            svgWeatherNone
 
 
 clockDisplay : Model -> Html msg
@@ -357,6 +357,9 @@ clockDisplay model =
         (if hour > 12 then
             weekday ++ " " ++ String.fromInt (hour - 12) ++ ":" ++ minute ++ " PM"
 
+         else if hour == 0 then
+            weekday ++ " " ++ "12:" ++ minute ++ " AM"
+
          else
             weekday ++ " " ++ String.fromInt hour ++ ":" ++ minute ++ " AM"
         )
@@ -386,11 +389,9 @@ view model =
                                 ]
                             ]
                         , span [ class "current-weather__temperature" ]
-                            [ img
-                                [ class "weather-icon current-weather__temperature__icon"
-                                , src (getWeatherCondition (weatherToday model))
-                                ]
-                                []
+                            [ div
+                                [ class "weather-icon weather-forecast__period__icon" ]
+                                [ getWeatherCondition (weatherToday model) ]
                             , span [ class "current-weather__temperature__value" ]
                                 [ text (String.fromInt (weatherToday model).temperature)
                                 , sup [ class "current-weather__temperature__symbol" ]
