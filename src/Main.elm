@@ -13,6 +13,7 @@ import Set exposing (Set)
 import SvgAssets exposing (..)
 import Task
 import Time exposing (Weekday(..))
+import Util exposing (clockDisplay, findStringIn, getListInPairs)
 
 
 
@@ -33,6 +34,22 @@ type alias Weather =
 
 type alias Locality =
     { zip : String, city : String, region : String, photo : String, lat : String, lng : String }
+
+
+type alias LocationFromZip =
+    { zip : String, country : String, place : Place }
+
+
+type alias LocationFromIP =
+    { zip : String, country : String, latitude : Float, longitude : Float, city : String, region : String }
+
+
+type alias Place =
+    { latitude : String, longitude : String, city : String, region : String }
+
+
+type alias Images =
+    { mobile : String, web : String }
 
 
 type alias Model =
@@ -208,19 +225,6 @@ weatherToday model =
             Weather 0 "-" "-" (Time.millisToPosix 0)
 
 
-getCombinedDayNightWeather : List Weather -> List (List Weather) -> List (List Weather)
-getCombinedDayNightWeather weatherList combinedList =
-    case List.length weatherList of
-        0 ->
-            List.reverse combinedList
-
-        1 ->
-            List.reverse combinedList
-
-        _ ->
-            getCombinedDayNightWeather (List.drop 2 weatherList) (List.take 2 weatherList :: combinedList)
-
-
 getWeatherForDay : Time.Zone -> List Weather -> Html Msg
 getWeatherForDay timezone day =
     let
@@ -265,7 +269,7 @@ getWeatherForDay timezone day =
     in
     li [ class "weather-forecast__period" ]
         [ p [ class "weather-forecast__period__name" ] [ text weekday ]
-        , div [ class "weather-icon weather-forecast__period__icon" ] [ getWeatherCondition we2 ]
+        , div [ class "weather-icon weather-forecast__period__icon" ] [ weatherConditionIcon we2 ]
         , p []
             [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
                 [ strong []
@@ -279,26 +283,12 @@ getWeatherForDay timezone day =
         ]
 
 
-weatherConditions =
-    [ "snow", "sleet", "cloudy", "sunny", "rain", "snow" ]
-
-
-findStringIn : List String -> String -> String
-findStringIn strings stringToSearchIn =
-    case List.head strings of
-        Just string ->
-            if String.contains string stringToSearchIn then
-                string
-
-            else
-                findStringIn (List.drop 1 strings) stringToSearchIn
-
-        Nothing ->
-            ""
-
-
-getWeatherCondition : Weather -> Html msg
-getWeatherCondition weather =
+weatherConditionIcon : Weather -> Html msg
+weatherConditionIcon weather =
+    let
+        weatherConditions =
+            [ "snow", "sleet", "cloudy", "sunny", "rain", "snow" ]
+    in
     case findStringIn weatherConditions (String.toLower weather.condition) of
         "sunny" ->
             svgWeatherSunny
@@ -319,50 +309,76 @@ getWeatherCondition weather =
             svgWeatherNone
 
 
-clockDisplay : Model -> Html msg
-clockDisplay model =
-    let
-        hour =
-            Time.toHour model.timezone model.time
+sidebar : Model -> Html Msg
+sidebar model =
+    aside
+        [ if model.menuOpen then
+            class "sidebar sidebar--opened"
 
-        minute =
-            String.padLeft 2 '0' <|
-                String.fromInt <|
-                    Time.toMinute model.timezone model.time
+          else
+            class "sidebar"
+        ]
+        [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose "sidebar__icon" ]
+        , form [ class "sidebar__form", onSubmit (FetchLocationFromZip model.zipInput) ]
+            [ input
+                [ class "input sidebar__form__input"
+                , placeholder "Enter Zip Code"
+                , onInput ChangeZipInput
+                , value model.zipInput
+                ]
+                []
+            , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
+            , button [ class "sidebar__form__current button button--tertiary", type_ "button", onClick FetchLocationFromIP ] [ text "Current Location" ]
+            ]
+        , if Set.size model.searchedZips > 0 then
+            div [ class "recent-searches" ]
+                [ h2 [] [ text "Recent Zip Code Searches:" ]
+                , ul []
+                    (List.map
+                        (\el -> li [ onClick (FetchLocationFromZip el) ] [ a [ href "#" ] [ text el ] ])
+                        (Set.toList model.searchedZips)
+                    )
+                , button [ class "button button--secondary", onClick ClearSearchedZips ] [ text "Clear Recent Zip Codes" ]
+                ]
 
-        weekday =
-            case Time.toWeekday model.timezone model.time of
-                Mon ->
-                    "Monday"
+          else
+            div [] []
+        ]
 
-                Tue ->
-                    "Tuesday"
 
-                Wed ->
-                    "Wednesday"
-
-                Thu ->
-                    "Thursday"
-
-                Fri ->
-                    "Friday"
-
-                Sat ->
-                    "Saturday"
-
-                Sun ->
-                    "Sunday"
-    in
-    text
-        (if hour > 12 then
-            weekday ++ " " ++ String.fromInt (hour - 12) ++ ":" ++ minute ++ " PM"
-
-         else if hour == 0 then
-            weekday ++ " " ++ "12:" ++ minute ++ " AM"
-
-         else
-            weekday ++ " " ++ String.fromInt hour ++ ":" ++ minute ++ " AM"
-        )
+hero : Model -> Html Msg
+hero model =
+    section [ class "current-weather", style "background-image" ("url(" ++ model.locality.photo ++ ")") ]
+        [ svgWave
+        , div [ class "current-weather__container" ]
+            [ header [ class "current-weather__header" ]
+                [ button [ class "current-weather__header__button", onClick OpenMenu ]
+                    [ svgMenu ]
+                ]
+            , div [ class "current-weather__grid" ]
+                [ span [ class "current-weather__location" ]
+                    [ text (model.locality.city ++ ", ")
+                    , strong [] [ text model.locality.region ]
+                    ]
+                , span [ class "current-weather__date" ]
+                    [ text <| clockDisplay model.timezone model.time ]
+                , span [ class "current-weather__forecast" ]
+                    [ text (weatherToday model).condition
+                    ]
+                ]
+            , span [ class "current-weather__temperature" ]
+                [ div
+                    [ class "weather-icon weather-forecast__period__icon" ]
+                    [ weatherConditionIcon (weatherToday model) ]
+                , span [ class "current-weather__temperature__value" ]
+                    [ text (String.fromInt (weatherToday model).temperature)
+                    , sup [ class "current-weather__temperature__symbol" ]
+                        [ text ("°" ++ (weatherToday model).unitForTemp)
+                        ]
+                    ]
+                ]
+            ]
+        ]
 
 
 view : Model -> Html Msg
@@ -370,76 +386,14 @@ view model =
     div [ class "app" ]
         [ div [ class "content" ]
             [ main_ []
-                [ section [ class "current-weather", style "background-image" ("url(" ++ model.locality.photo ++ ")") ]
-                    [ svgWave
-                    , div [ class "current-weather__container" ]
-                        [ header [ class "current-weather__header" ]
-                            [ button [ class "current-weather__header__button", onClick OpenMenu ]
-                                [ svgMenu ]
-                            ]
-                        , div [ class "current-weather__grid" ]
-                            [ span [ class "current-weather__location" ]
-                                [ text (model.locality.city ++ ", ")
-                                , strong [] [ text model.locality.region ]
-                                ]
-                            , span [ class "current-weather__date" ]
-                                [ clockDisplay model ]
-                            , span [ class "current-weather__forecast" ]
-                                [ text (weatherToday model).condition
-                                ]
-                            ]
-                        , span [ class "current-weather__temperature" ]
-                            [ div
-                                [ class "weather-icon weather-forecast__period__icon" ]
-                                [ getWeatherCondition (weatherToday model) ]
-                            , span [ class "current-weather__temperature__value" ]
-                                [ text (String.fromInt (weatherToday model).temperature)
-                                , sup [ class "current-weather__temperature__symbol" ]
-                                    [ text ("°" ++ (weatherToday model).unitForTemp)
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
+                [ hero model
                 , section [ class "weather-forecast" ]
                     [ div [ class "weather-forecast__container" ]
-                        [ ul [] (List.map (getWeatherForDay model.timezone) (getCombinedDayNightWeather model.weather []))
+                        [ ul [] (List.map (getWeatherForDay model.timezone) (getListInPairs model.weather []))
                         ]
                     ]
                 ]
-            , aside
-                [ if model.menuOpen then
-                    class "sidebar sidebar--opened"
-
-                  else
-                    class "sidebar"
-                ]
-                [ button [ class "sidebar__close", onClick CloseMenu ] [ svgClose "sidebar__icon" ]
-                , form [ class "sidebar__form", onSubmit (FetchLocationFromZip model.zipInput) ]
-                    [ input
-                        [ class "input sidebar__form__input"
-                        , placeholder "Enter Zip Code"
-                        , onInput ChangeZipInput
-                        , value model.zipInput
-                        ]
-                        []
-                    , button [ class "sidebar__form__change button button--primary", type_ "submit" ] [ text "Search" ]
-                    , button [ class "sidebar__form__current button button--tertiary", type_ "button", onClick FetchLocationFromIP ] [ text "Current Location" ]
-                    ]
-                , if Set.size model.searchedZips > 0 then
-                    div [ class "recent-searches" ]
-                        [ h2 [] [ text "Recent Zip Code Searches:" ]
-                        , ul []
-                            (List.map
-                                (\el -> li [ onClick (FetchLocationFromZip el) ] [ a [ href "#" ] [ text el ] ])
-                                (Set.toList model.searchedZips)
-                            )
-                        , button [ class "button button--secondary", onClick ClearSearchedZips ] [ text "Clear Recent Zip Codes" ]
-                        ]
-
-                  else
-                    div [] []
-                ]
+            , sidebar model
             ]
         , loading model
         ]
@@ -468,22 +422,6 @@ weatherEndpoint =
 
 weatherIconEndpoint =
     "https://www.flaticon.com/packs/weather-forecast"
-
-
-type alias LocationFromZip =
-    { zip : String, country : String, place : Place }
-
-
-type alias LocationFromIP =
-    { zip : String, country : String, latitude : Float, longitude : Float, city : String, region : String }
-
-
-type alias Place =
-    { latitude : String, longitude : String, city : String, region : String }
-
-
-type alias Images =
-    { mobile : String, web : String }
 
 
 placeDecoder : Decoder Place
