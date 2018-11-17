@@ -287,23 +287,35 @@ weatherConditionIcon : Weather -> Html msg
 weatherConditionIcon weather =
     let
         weatherConditions =
-            [ "snow", "sleet", "cloudy", "sunny", "rain", "snow" ]
+            [ "mostly clear", "mostly sunny", "partly sunny", "cloudy", "snow", "sleet", "rain", "sunny", "clear" ]
     in
     case findStringIn weatherConditions (String.toLower weather.condition) of
-        "sunny" ->
-            svgWeatherSunny
+        "mostly clear" ->
+            svgWeatherCloudy
+
+        "mostly sunny" ->
+            svgWeatherCloudy
+
+        "partly sunny" ->
+            svgWeatherCloudy
 
         "cloudy" ->
             svgWeatherCloudy
-
-        "rain" ->
-            svgWeatherRain
 
         "snow" ->
             svgWeatherSnow
 
         "sleet" ->
             svgWeatherSleet
+
+        "rain" ->
+            svgWeatherRain
+
+        "sunny" ->
+            svgWeatherSunny
+
+        "clear" ->
+            svgWeatherSunny
 
         _ ->
             svgWeatherNone

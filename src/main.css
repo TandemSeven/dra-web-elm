@@ -400,7 +400,10 @@ body {
     padding: 15px;
 }
 
-
+.weather-icon{
+    display: flex;
+    justify-content: center;
+}
 
 .weather-icon svg {
     height: 3.75rem;
