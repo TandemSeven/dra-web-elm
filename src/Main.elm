@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser
+import Browser.Navigation as Nav
 import Html exposing (Html, a, aside, button, div, form, h2, header, img, input, li, main_, p, section, span, strong, sup, text, ul)
 import Html.Attributes exposing (class, href, placeholder, src, style, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
@@ -13,6 +14,7 @@ import Set exposing (Set)
 import SvgAssets exposing (..)
 import Task
 import Time exposing (Weekday(..))
+import Url
 import Util exposing (clockDisplay, findStringIn, getListInPairs)
 
 
@@ -21,7 +23,14 @@ import Util exposing (clockDisplay, findStringIn, getListInPairs)
 
 
 main =
-    Browser.element { init = init, update = update, view = view, subscriptions = subscriptions }
+    Browser.application
+        { init = init
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
 
 
 
@@ -61,12 +70,14 @@ type alias Model =
     , loading : Bool
     , timezone : Time.Zone
     , time : Time.Posix
+    , key : Nav.Key
+    , url : Url.Url
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0)
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Model "" (Locality "" "" "" "" "" "") [] False Set.empty True Time.utc (Time.millisToPosix 0) key url
     , Cmd.batch [ fetchLocationFromIP, Task.perform AdjustTimeZone Time.here, Task.perform Tick Time.now ]
     )
 
@@ -90,6 +101,8 @@ type Msg
     | CloseMenu
     | Tick Time.Posix
     | AdjustTimeZone Time.Zone
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
 
 
 setLocalityFromZip : LocationFromZip -> Locality -> Locality
@@ -197,6 +210,19 @@ update msg model =
 
         AdjustTimeZone newZone ->
             ( { model | timezone = newZone }, Cmd.none )
+
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+        UrlChanged url ->
+            ( { model | url = url }
+            , Cmd.none
+            )
 
 
 
@@ -393,22 +419,26 @@ hero model =
         ]
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    div [ class "app" ]
-        [ div [ class "content" ]
-            [ main_ []
-                [ hero model
-                , section [ class "weather-forecast" ]
-                    [ div [ class "weather-forecast__container" ]
-                        [ ul [] (List.map (getWeatherForDay model.timezone) (getListInPairs model.weather []))
+    { title = "DRA Weather App"
+    , body =
+        [ div [ class "app" ]
+            [ div [ class "content" ]
+                [ main_ []
+                    [ hero model
+                    , section [ class "weather-forecast" ]
+                        [ div [ class "weather-forecast__container" ]
+                            [ ul [] (List.map (getWeatherForDay model.timezone) (getListInPairs model.weather []))
+                            ]
                         ]
                     ]
+                , sidebar model
                 ]
-            , sidebar model
+            , loading model
             ]
-        , loading model
         ]
+    }
 
 
 
