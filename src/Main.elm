@@ -9,13 +9,13 @@ import Http
 import Iso8601
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (optional, required)
-import List.Extra exposing (getAt)
 import Set exposing (Set)
 import SvgAssets exposing (..)
 import Task
-import Time exposing (Weekday(..))
+import Time
 import Url
 import Util exposing (clockDisplay, findStringIn, getListInPairs)
+import Weather exposing (Weather, getWeatherForDay, weatherConditionIcon, weatherToday)
 
 
 
@@ -35,10 +35,6 @@ main =
 
 
 -- MODEL
-
-
-type alias Weather =
-    { temperature : Int, unitForTemp : String, condition : String, time : Time.Posix }
 
 
 type alias Locality =
@@ -220,9 +216,15 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
+            if url.path == "/settings" then
+                ( model
+                , Cmd.none
+                )
+
+            else
+                ( model
+                , Cmd.none
+                )
 
 
 
@@ -239,112 +241,6 @@ loading model =
     else
         div [ class "loading" ]
             []
-
-
-weatherToday : Model -> Weather
-weatherToday model =
-    case List.head model.weather of
-        Just first ->
-            first
-
-        Nothing ->
-            Weather 0 "-" "-" (Time.millisToPosix 0)
-
-
-getWeatherForDay : Time.Zone -> List Weather -> Html Msg
-getWeatherForDay timezone day =
-    let
-        we1 =
-            case getAt 0 day of
-                Just first ->
-                    first
-
-                Nothing ->
-                    Weather 0 "-" "-" (Time.millisToPosix 0)
-
-        we2 =
-            case getAt 1 day of
-                Just second ->
-                    second
-
-                Nothing ->
-                    Weather 0 "-" "-" (Time.millisToPosix 0)
-
-        weekday =
-            case Time.toWeekday timezone we1.time of
-                Mon ->
-                    "Mon"
-
-                Tue ->
-                    "Tue"
-
-                Wed ->
-                    "Wed"
-
-                Thu ->
-                    "Thu"
-
-                Fri ->
-                    "Fri"
-
-                Sat ->
-                    "Sat"
-
-                Sun ->
-                    "Sun"
-    in
-    li [ class "weather-forecast__period" ]
-        [ p [ class "weather-forecast__period__name" ] [ text weekday ]
-        , div [ class "weather-icon weather-forecast__period__icon" ] [ weatherConditionIcon we2 ]
-        , p []
-            [ span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--high" ]
-                [ strong []
-                    [ text (String.fromInt we1.temperature ++ "°" ++ we1.unitForTemp)
-                    ]
-                ]
-            , span [ class "weather-forecast__period__temperature weather-forecast__period__temperature--low" ]
-                [ text (String.fromInt we2.temperature ++ "°" ++ we2.unitForTemp)
-                ]
-            ]
-        ]
-
-
-weatherConditionIcon : Weather -> Html msg
-weatherConditionIcon weather =
-    let
-        weatherConditions =
-            [ "mostly clear", "mostly sunny", "partly sunny", "cloudy", "snow", "sleet", "rain", "sunny", "clear" ]
-    in
-    case findStringIn weatherConditions (String.toLower weather.condition) of
-        "mostly clear" ->
-            svgWeatherCloudy
-
-        "mostly sunny" ->
-            svgWeatherCloudy
-
-        "partly sunny" ->
-            svgWeatherCloudy
-
-        "cloudy" ->
-            svgWeatherCloudy
-
-        "snow" ->
-            svgWeatherSnow
-
-        "sleet" ->
-            svgWeatherSleet
-
-        "rain" ->
-            svgWeatherRain
-
-        "sunny" ->
-            svgWeatherSunny
-
-        "clear" ->
-            svgWeatherSunny
-
-        _ ->
-            svgWeatherNone
 
 
 sidebar : Model -> Html Msg
@@ -401,17 +297,17 @@ hero model =
                 , span [ class "current-weather__date" ]
                     [ text <| clockDisplay model.timezone model.time ]
                 , span [ class "current-weather__forecast" ]
-                    [ text (weatherToday model).condition
+                    [ text (weatherToday model.weather).condition
                     ]
                 ]
             , span [ class "current-weather__temperature" ]
                 [ div
                     [ class "weather-icon weather-forecast__period__icon" ]
-                    [ weatherConditionIcon (weatherToday model) ]
+                    [ weatherConditionIcon (weatherToday model.weather) ]
                 , span [ class "current-weather__temperature__value" ]
-                    [ text (String.fromInt (weatherToday model).temperature)
+                    [ text (String.fromInt (weatherToday model.weather).temperature)
                     , sup [ class "current-weather__temperature__symbol" ]
-                        [ text ("°" ++ (weatherToday model).unitForTemp)
+                        [ text ("°" ++ (weatherToday model.weather).unitForTemp)
                         ]
                     ]
                 ]
