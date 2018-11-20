@@ -215,16 +215,11 @@ update msg model =
                 Browser.External href ->
                     ( model, Nav.load href )
 
+        -- http://localhost:3000/#/settings
         UrlChanged url ->
-            if url.path == "/settings" then
-                ( model
-                , Cmd.none
-                )
-
-            else
-                ( model
-                , Cmd.none
-                )
+            ( { model | menuOpen = True }
+            , Cmd.none
+            )
 
 
 
