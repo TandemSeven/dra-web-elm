@@ -40,6 +40,12 @@ elm-app start
 
 You should then be able to point your web browser at [localhost:3000](http://localhost:3000) to begin checking out the app.
 
+# Caveats
+
++ Routing is a bit funky at the moment. Having trouble discerning between navigating to a route requiring a reload, and a route that's just part of the SPA. For now, use the following URL to see an example of routing: [http://localhost:3000/#/settings](http://localhost:3000/#/settings) 
+
++ You may notice that source files are long (several hundred lines). This is because Elm's creator has advised that for small project, you might not need to split files up as much as you do for Javascript, because of the clear flow provided by the elm architecture. See Evan Czaplicki's [famous video](https://www.youtube.com/watch?v=XpDsk374LDE) on the topic.
+
 ---
 
 This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).
@@ -47,8 +53,3 @@ This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/
 Below you will find some information on how to perform basic tasks.
 You can find the most recent version of this guide [here](https://github.com/halfzebra/create-elm-app/blob/master/template/README.md).
 
-# Caveats
-
-+ Routing is a bit funky at the moment. Having trouble discerning between navigating to a route requiring a reload, and a route that's just part of the SPA. For now, use the following URL to see an example of routing: [http://localhost:3000/#/settings](http://localhost:3000/#/settings) 
-
-+ You may notice that source files are long (several hundred lines). This is because Elm's creator has advised that for small project, you might not need to split files up as much as you do for Javascript, because of the clear flow provided by the elm architecture. See Evan Czaplicki's [famous video](https://www.youtube.com/watch?v=XpDsk374LDE) on the topic.
