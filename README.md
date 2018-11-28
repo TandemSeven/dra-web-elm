@@ -1,6 +1,6 @@
 # About / Purpose
 
-This DRA demonstrates how one would write a simple simple-page app using the Elm ecosystem.
+This DRA demonstrates how one would write a simple single-page app using the Elm ecosystem.
 
 Elm is a functional, strongly-typed, domain specific programming language focused on front-end development. It features a unique syntax that is similar to Haskell, and compiles to Javascript for deployment on the web. [Learn more](https://elm-lang.org/)
 

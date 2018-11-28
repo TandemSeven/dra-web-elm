@@ -57,6 +57,10 @@ type alias Images =
     { mobile : String, web : String }
 
 
+
+--type MaybeInt
+
+
 type alias Model =
     { zipInput : String
     , locality : Locality
