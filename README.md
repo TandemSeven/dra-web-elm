@@ -2,7 +2,7 @@
 
 This DRA demonstrates how one would write a simple single-page app using the Elm ecosystem.
 
-Elm is a functional, strongly-typed, domain specific programming language focused on front-end development. It features a unique syntax that is similar to Haskell, and compiles to Javascript for deployment on the web. [Learn more](https://elm-lang.org/)
+Elm is a functional, statically-typed, domain specific programming language focused on front-end development. It features a unique syntax that is similar to Haskell, and compiles to Javascript for deployment on the web. [Learn more](https://elm-lang.org/)
 
 We are interested in trying out elm (as opposed to a JS framework) because it features an extremely robust architecture (no runtime exceptions in practice), high performance, as well as a core set of tools that are wonderful to use.
 
@@ -50,6 +50,5 @@ You should then be able to point your web browser at [localhost:3000](http://loc
 
 This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).
 
-Below you will find some information on how to perform basic tasks.
 You can find the most recent version of this guide [here](https://github.com/halfzebra/create-elm-app/blob/master/template/README.md).
 
