@@ -24,11 +24,11 @@ jobs:
           - v1-dependencies-{{checksum "package.json"}}
           - v1-dependencies-
     - run: node -v
-    - run: wget https://github.com/elm/compiler/releases/download/0.19.0/binaries-for-mac.tar.gz
-    - run: tar xzf binaries-for-mac.tar.gz
-    - run: sudo mv elm /usr/local/bin/elm
-    - run: pwd
-    - run: sudo npm install -g create-elm-app
+    #- run: wget https://github.com/elm/compiler/releases/download/0.19.0/binaries-for-mac.tar.gz
+    #- run: tar xzf binaries-for-mac.tar.gz
+    #- run: sudo mv elm /usr/local/bin/elm
+    #- run: sudo yarn add create-elm-app
+    - run: sudo npm install -g elm create-elm-app --unsafe-perm=true
     - save_cache:
         paths:
           - node_modules
