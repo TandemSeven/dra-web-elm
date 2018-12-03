@@ -23,7 +23,6 @@ jobs:
         keys:
           - v1-dependencies-{{checksum "elm.json"}}
           - v1-dependencies-
-    - setup_remote_docker
     - run: node -v
     - run: sudo npm install -g elm create-elm-app
     - save_cache:
