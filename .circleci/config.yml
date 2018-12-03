@@ -21,12 +21,12 @@ jobs:
     - checkout
     - restore_cache:
         keys:
-          - v1-dependencies-{{checksum "elm.json"}}
+          - v1-dependencies-{{checksum "package.json"}}
           - v1-dependencies-
     - run: node -v
     - run: sudo npm install elm create-elm-app
     - save_cache:
         paths:
           - node_modules
-        key: v1-dependencies-{{checksum "elm.json"}}
+        key: v1-dependencies-{{checksum "package.json"}}
     - run: elm-app build --optimize
