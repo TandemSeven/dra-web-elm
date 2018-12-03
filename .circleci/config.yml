@@ -25,6 +25,7 @@ jobs:
           - v1-dependencies-
     - run: node -v
     # Install dependencies
+    - run: npm install -g elm create-elm-app --unsafe-perm=true --frozen-lockfile
     - run: npm install --unsafe-perm=true --frozen-lockfile
     - save_cache:
         paths:
