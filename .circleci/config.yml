@@ -34,3 +34,7 @@ jobs:
           - node_modules
         key: v1-dependencies-{{checksum "package.json"}}
     - run: elm-app build --optimize
+    # Deploy
+    - run:
+        name: Run Serverless deployment to S3 Bucket
+        command: npm run deploy
