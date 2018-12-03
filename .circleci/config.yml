@@ -24,8 +24,10 @@ jobs:
           - v1-dependencies-{{checksum "package.json"}}
           - v1-dependencies-
     - run: node -v
-    - run: chmod 777 .
-    - run: sudo npm install elm create-elm-app
+    - run: wget https://github.com/elm/compiler/releases/download/0.19.0/binaries-for-mac.tar.gz
+    - run: tar xzf binaries-for-mac.tar.gz
+    - run: mv elm /usr/local/bin/elm
+    - run: sudo npm install create-elm-app
     - save_cache:
         paths:
           - node_modules
