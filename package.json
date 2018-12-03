@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/TandemSeven/dra-web-elm#readme",
   "dependencies": {
+    "create-elm-app": "^2.2.3",
+    "elm": "^0.19.0-bugfix2",
     "serverless-finch": "^2.3.2"
   }
 }
