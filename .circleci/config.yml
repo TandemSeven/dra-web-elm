@@ -24,7 +24,7 @@ jobs:
           - v1-dependencies-{{checksum "elm.json"}}
           - v1-dependencies-
     - run: node -v
-    - run: sudo npm install -g elm create-elm-app
+    - run: sudo npm install elm create-elm-app
     - save_cache:
         paths:
           - node_modules
