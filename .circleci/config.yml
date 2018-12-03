@@ -27,7 +27,7 @@ jobs:
     - run: wget https://github.com/elm/compiler/releases/download/0.19.0/binaries-for-mac.tar.gz
     - run: tar xzf binaries-for-mac.tar.gz
     - run: sudo mv elm /usr/local/bin/elm
-    - run: sudo mkdir '/usr/local/lib/node_modules/create-elm-app/node_modules/elmi-to-json/unpacked_bin'
+    - run: pwd
     - run: sudo npm install -g create-elm-app
     - save_cache:
         paths:
