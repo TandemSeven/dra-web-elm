@@ -1,0 +1,20 @@
+{
+  "name": "dra-web-elm",
+  "version": "1.0.0",
+  "description": "This DRA demonstrates how one would write a simple single-page app using the Elm ecosystem.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "serverless client deploy --no-confirm"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TandemSeven/dra-web-elm.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TandemSeven/dra-web-elm/issues"
+  },
+  "homepage": "https://github.com/TandemSeven/dra-web-elm#readme"
+}
