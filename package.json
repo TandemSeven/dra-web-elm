@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/TandemSeven/dra-web-elm/issues"
   },
-  "homepage": "https://github.com/TandemSeven/dra-web-elm#readme"
+  "homepage": "https://github.com/TandemSeven/dra-web-elm#readme",
+  "dependencies": {
+    "serverless-finch": "^2.3.2"
+  }
 }
