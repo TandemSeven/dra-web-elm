@@ -23,9 +23,7 @@ jobs:
       # Install dependencies!
       - run:
           name: Install Dependencies
-          command: |
-            npm install
-            npm install -g create-elm-app elm
+          command: npm install
 
       # Cache dependencies for subsequent builds!
       - save_cache:
@@ -36,7 +34,7 @@ jobs:
       # Build assets!
       - run:
           name: Build Assets
-          command: elm-app build --optimize
+          command: npm run build
 
       # Deploy to S3!
       - run:
