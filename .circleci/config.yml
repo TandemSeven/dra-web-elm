@@ -5,34 +5,46 @@
 version: 2
 jobs:
   build:
-    #background: true
-    docker:
-    # available node images listed here https://circleci.com/docs/2.0/circleci-images/#nodejs
-      - image: circleci/node:10.0.0
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      #- image: circleci/node:latest
-      #command: npm run browserstack-local
-
+    environment:
+      DRA_BUILD_DIR: build # Your build output directory.
+      DRA_BUCKET_NAME: dra-web-elm # Your S3 bucket name.
     working_directory: ~/repo
-
+    docker:
+      - image: circleci/node:8.9.1
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-          - v1-dependencies-{{checksum "package.json"}}
-          - v1-dependencies-
-    - run: node -v
-    # Install dependencies
-    - run: sudo npm install -g create-elm-app elm serverless --unsafe-perm=true --frozen-lockfile
-    - run: npm install --unsafe-perm=true --frozen-lockfile
-    - save_cache:
-        paths:
-          - node_modules
-        key: v1-dependencies-{{checksum "package.json"}}
-    - run: elm-app build --optimize
-    # Deploy
-    - run:
-        name: Run Serverless deployment to S3 Bucket
-        command: npm run deploy
+      - checkout
+
+      # Restore dependency cache from previous build!
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+
+      # Install dependencies!
+      - run:
+          name: Install Dependencies
+          command: npm install
+
+      # Cache dependencies for subsequent builds!
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      # Build assets!
+      - run:
+          name: Build Assets
+          command: elm-app build --optimize
+
+      # Deploy to S3!
+      - run:
+          name: Deploy to S3
+          command: |
+            if [ "${CIRCLE_BRANCH}" = "master" ]; then
+              sudo apt-get update && sudo apt-get install -y python-dev
+              sudo curl -O https://bootstrap.pypa.io/get-pip.py
+              sudo python get-pip.py
+              sudo pip install awscli --upgrade
+              aws --version  
+              aws s3 sync $DRA_BUILD_DIR s3://$DRA_BUCKET_NAME --delete --acl public-read
+            fi
